@@ -18,6 +18,7 @@ package com.example.affirmations
 import android.annotation.SuppressLint
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.widget.SearchView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -59,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.affirmations.data.Datasource
 import com.example.affirmations.model.Affirmation
 import com.example.affirmations.ui.theme.AffirmationsTheme
@@ -77,8 +79,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AffirmationsApp()
-
+                    //AffirmationsApp()
+                    SearchableAffirmationsApp()
                 }
             }
         }
@@ -184,4 +186,50 @@ fun AffirmationList(affirmationList: List<Affirmation>,modifier: Modifier=Modifi
 @Composable
 private fun AffirmationCardPreview(){
     AffirmationsCard(Affirmation(R.string.affirmation1,R.drawable.image1,R.drawable.baseline_play_arrow_24,R.drawable.pause,R.raw.song))
+}
+
+
+@Preview
+@Composable
+fun SearchableAffirmationsApp() {
+    var searchText by remember { mutableStateOf("") }
+    val affirmationList = Datasource().loadAffirmations()
+    val filteredList = affirmationList.filter {
+        LocalContext.current.getString(it.stringResourceId).contains(searchText, ignoreCase = true)
+    }
+    Column {
+        SearchViewComponent(onQueryChanged = { query ->
+            searchText = query
+        })
+        AffirmationList(affirmationList = filteredList)
+    }
+}
+
+@Composable
+fun SearchViewComponent(onQueryChanged: (String) -> Unit) {
+    AndroidView(
+        factory = { context ->
+            SearchView(context).apply {
+                isIconifiedByDefault = false
+                setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                    override fun onQueryTextSubmit(query: String?): Boolean {
+                        query?.let {
+                            onQueryChanged(it)
+                        }
+                        return true
+                    }
+
+                    override fun onQueryTextChange(newText: String?): Boolean {
+                        newText?.let {
+                            onQueryChanged(it)
+                        }
+                        return true
+                    }
+                })
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    )
 }
